@@ -3,6 +3,8 @@ This repository contains code for the paper titled "etermining clinically releva
 
 ### Requirements:
 These packages are used in the files:
+
+
 numpy~=1.19.2  
 pandas~=1.1.3  
 scikit-learn~=0.23.2  
@@ -74,4 +76,4 @@ This command prints the Wasserstein distance between persistence diagrams of h1 
 
 **Note:** You need to sample and generate persistence diagram of both before computing Wasserstein distance between HD2020_007 and HD2020_016.
 
-![Persistence diagram shows difference between healthy control and persons infected with COVID-19](panel_figs.png)
+![Persistence diagram shows difference between healthy control and persons infected with COVID-19](panel_figs.svg)
