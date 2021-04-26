@@ -19,11 +19,13 @@ def sample(x, outfile):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-f', '--filename', type=str, required=True, help='Filename to perform kde')
-    parser.add_argument('-p', '--proteins', type=int, nargs='+', help='Proteins to consider')
+    parser.add_argument('-p', '--proteins', type=int, nargs='+', default=[10, 17, 22], help='Proteins to consider')
     parser.add_argument('-n', '--num_kde_samples', type=int, default=20000, help='Sample from KDE')
 
     args = parser.parse_args()
     file_name = 'data/' + args.filename
+    if '.csv' in file_name:
+        file_name = file_name[-4:]
     dir_name = 'KDE_samples/'
     if not os.path.exists(dir_name):
         os.mkdir(dir_name)

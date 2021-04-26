@@ -30,6 +30,8 @@ class UnionFind:
 
 
 def grow_regions(dirname):
+    if '.csv' in dirname:
+        dirname = dirname[-4:]
     vertex_data = np.loadtxt('KDE_samples/' + dirname + '_fvert.txt')
     # vertex_values = np.loadtxt(dirname + '/' + dirname + '.txt')
     print('Calculating Nearest neighbor distance')
