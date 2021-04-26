@@ -30,7 +30,7 @@ h1.csv
 
 h2.csv
 
-#h3.csv  '#' to comment out
+\#h3.csv  '#' to comment out
 
 Patient:
 
@@ -48,6 +48,7 @@ This will generate a diagram in the main directory called feature_importance.png
 
 python --filename h1 --proteins 0 1 2 --num\_kde\_samples 20000
 
+
 If your original filename is h1.csv, please pass h1 to --filename flag.  The protein flag is **important**. These indices correspond to columns of proteins in the 'h1.csv' file. **Notice** that indices are 0-based. This will create a directory named KDE\_samples and generate a file named h1_fvert.txt inside KDE\_samples directory.
 
 
@@ -55,9 +56,11 @@ If your original filename is h1.csv, please pass h1 to --filename flag.  The pro
 ### Computing persistence diagrams
 python compute_persistence.py -f h1 -n 40
 
+
 This commands compute persistence diagram by building a complete graph on the KDE sampled data of h1.csv [stored as KDE\_samples\h1_fvert.txt] as described in the paper. The -n flag controls nearest neighbors to consider for computing vertex weights. This creates a directory named 'Persistence\_Diagrams' and two files h1\_dim0.npy.gz and h1_\dim1.npy.gz. The first file contains (b, d) pairs for vertices and the second one contains birth values of the 1-dim homology classes. For more details please refer to the paper and the source code.
 ### Computing Wasserstein Distances
 python compute_wasser.py -f h1 p1 
+
 This command prints the Wasserstein distance between persistence diagrams of h1 and p1 [both 0 and 1 dim PD].
 
 ## Example:
@@ -67,4 +70,8 @@ This command prints the Wasserstein distance between persistence diagrams of h1 
  [It takes Eomes,T-Bet, Ki-67 proteins since index of Eomes is 10 in HD2020_007.csv file]
 - python compute_persistence -f HD2020_007 -n 40
 - python  compute_wasser.py -f HD2020_007 HD2020_016
+
+
 **Note:** You need to sample and generate persistence diagram of both before computing Wasserstein distance between HD2020_007 and HD2020_016.
+
+![Persistence diagram shows difference between healthy control and persons infected with COVID-19](panel_figs.png)
