@@ -74,4 +74,4 @@ This command prints the Wasserstein distance between persistence diagrams of h1 
 
 **Note:** You need to sample and generate persistence diagram of both before computing Wasserstein distance between HD2020_007 and HD2020_016.
 
-![Persistence diagram shows difference between healthy control and persons infected with COVID-19](panel_figs.svg)
+![Persistence diagram shows difference between healthy control and persons infected with COVID-19](panel_figs.png)
