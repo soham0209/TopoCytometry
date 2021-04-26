@@ -1,5 +1,5 @@
 # TopoCytometry
-This repository contains code for the paper titled "etermining clinically relevant features in cytometry data using persistent homology" authored by Soham Mukherjee, Darren Wethington, Tamal K. Dey, Jayajit Das.
+This repository contains code for the paper titled "Determining clinically relevant features in cytometry data using persistent homology" authored by Soham Mukherjee, Darren Wethington, Tamal K. Dey, Jayajit Das.
 
 ### Requirements:
 These packages are used in the files:
