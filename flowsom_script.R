@@ -1,0 +1,228 @@
+################################################################################
+# Worked example using FlowSOM for clustering and Rtsne for visualization of a 
+# high-dimensional mass cytometry (CyTOF) data set
+#
+# References:
+#
+# FlowSOM:
+# - van Gassen et al. (2015), "FlowSOM: Using self-organizing maps for 
+# visualization and interpretation of cytometry data", Cytometry Part A, 
+# http://www.ncbi.nlm.nih.gov/pubmed/25573116
+# - Bioconductor package: http://www.ncbi.nlm.nih.gov/pubmed/25573116
+#
+# Rtsne:
+# - CRAN package: https://cran.r-project.org/web/packages/Rtsne/index.html
+# - additional details: https://github.com/jkrijthe/Rtsne
+#
+# Data set:
+# - "sample 01" from the following paper:
+# - Samusik et al. (2016), "Automated mapping of phenotype space with 
+# single-cell data", Nature Methods, http://www.ncbi.nlm.nih.gov/pubmed/27183440
+# - Data file (Samusik_01_notransform.fcs) is also available for download from 
+# https://flowrepository.org/id/FR-FCM-ZZPH
+#
+# Lukas Weber, September 2016
+# Edited for specific application by Darren Wethington, October 2021
+################################################################################
+
+
+# load packages
+
+library(flowCore)
+library(FlowSOM)
+library(Rtsne)
+library(ggplot2)
+
+
+
+
+#############################
+### LOAD AND PREPARE DATA ###
+#############################
+
+# load data (download file from link above or GitHub repository)
+
+data <- matrix(nrow=0,ncol=34)
+
+files <- list.files(path="./", pattern="*.fcs", full.names=TRUE, recursive=FALSE)
+filenames <- list.files(path="./", pattern="*.fcs", full.names=FALSE, recursive=FALSE)
+for (i in 1:20){
+  data2 <- flowCore::exprs(flowCore::read.FCS(files[i], transformation = FALSE, truncate_max_range = FALSE))
+  data <- rbind(data,data2)
+}
+
+head(data)
+dim(data)
+
+# select protein marker columns to use for clustering
+
+marker_cols <- 7:33
+
+# apply arcsinh transformation
+# (with standard scale factor of 5 for CyTOF data; alternatively 150 for flow 
+# cytometry data; see Bendall et al. 2011, Science, Supplementary Figure S2)
+
+asinh_scale <- 150
+data[, marker_cols] <- asinh(data[, marker_cols] / asinh_scale)
+
+summary(data)
+
+# create flowFrame object (required input format for FlowSOM)
+
+data_FlowSOM <- flowCore::flowFrame(data)
+
+
+
+
+###################
+### RUN FLOWSOM ###
+###################
+
+# set seed for reproducibility
+
+set.seed(1234)
+
+# run FlowSOM (initial steps prior to meta-clustering)
+
+out <- FlowSOM::ReadInput(data_FlowSOM, transform = FALSE, scale = FALSE)
+out <- FlowSOM::BuildSOM(out, colsToUse = marker_cols)
+out <- FlowSOM::BuildMST(out)
+
+# optional visualization
+
+FlowSOM::PlotStars(out)
+
+# extract cluster labels (pre meta-clustering) from output object
+
+original_labels_pre <- out$map$mapping[, 1]
+
+# specify final number of clusters for meta-clustering (can also be selected 
+# automatically, but this often does not perform well)
+
+k <- 15
+
+# run meta-clustering
+
+# note: In the current version of FlowSOM, the meta-clustering function 
+# FlowSOM::metaClustering_consensus() does not pass along the seed argument 
+# correctly, so results are not reproducible. We use the internal function 
+# ConsensusClusterPlus::ConsensusClusterPlus() to get around this. However, this
+# will be fixed in the next update of FlowSOM (version 1.5); then the following 
+# (simpler) code can be used instead:
+#seed <- 1234
+#out <- FlowSOM::metaClustering_consensus(out$map$codes, k = k, seed = seed)
+
+seed <- 1234
+for (i in 1:length(files)){
+    data2 <- flowCore::exprs(flowCore::read.FCS(files[i], transformation = FALSE, truncate_max_range = FALSE))
+    data2[, marker_cols] <- asinh(data2[, marker_cols] / asinh_scale)
+    data2_FlowSOM <- flowCore::flowFrame(data2)
+    out2 = NewData(out,data2_FlowSOM)
+    clusters <- FlowSOM::metaClustering_consensus(out2$map$codes, k = k, seed = seed)
+    labels_pre <- out2$map$mapping[, 1]
+    labels2 = clusters[labels_pre]
+    res = data.frame(cluster = labels2)
+    outfile = paste("cluster_labels/",filenames[i],sep="")
+    write.table(res, file = outfile, 
+                row.names = FALSE, quote = FALSE, sep = ",")
+}
+clusters <- ConsensusClusterPlus::ConsensusClusterPlus(t(out$map$codes), maxK = k, seed = seed)
+clusters <- clusters[[k]]$consensusClass
+
+
+# extract cluster labels from output object
+
+labels <- clusters[original_labels_pre]
+
+# summary of cluster sizes and number of clusters
+
+table(labels)
+length(table(labels))
+
+# save cluster labels
+
+res <- data.frame(cluster = labels)
+
+write.table(res, file = "results/cluster_labels_FlowSOM.txt", 
+            row.names = FALSE, quote = FALSE, sep = "\t")
+
+# Darren's changes: get MFI of clusters
+
+#mfis <- GetMetaclusterMFIs(flowSOM
+
+#################
+### RUN RTSNE ###
+#################
+
+# subsampling (required due to runtime)
+
+#n_sub <- 100000
+
+set.seed(1234)
+#ix <- sample(1:length(labels), n_sub)
+
+# prepare data for Rtsne (matrix format required)
+
+data_Rtsne <- data[, marker_cols]
+data_Rtsne <- as.matrix(data_Rtsne)
+
+head(data_Rtsne)
+dim(data_Rtsne)
+
+# remove any near-duplicate rows (required by Rtsne)
+
+dups <- duplicated(data_Rtsne)
+data_Rtsne <- data_Rtsne[!dups, ]
+
+dim(data_Rtsne)
+
+
+# run Rtsne (Barnes-Hut-SNE algorithm; runtime: 2-3 min)
+
+# note initial PCA is not required, since we do not have too many dimensions
+# (i.e. not thousands, which may be the case in other domains)
+
+set.seed(1234)
+out_Rtsne <- Rtsne(data_Rtsne, pca = FALSE, verbose = TRUE)
+
+
+
+
+###################
+### CREATE PLOT ###
+###################
+
+# load cluster labels (if not still loaded)
+
+file_labels <- "results/cluster_labels_FlowSOM.txt"
+data_labels <- read.table(file_labels, header = TRUE, sep = "\t", stringsAsFactors = FALSE)
+labels <- data_labels[, "cluster"]
+
+# select points used by Rtsne
+
+labels_plot <- labels[!dups]
+length(labels_plot)  ## should be same as number of rows in data_Rtsne
+
+# prepare Rtsne output data for plot
+
+data_plot <- as.data.frame(out_Rtsne$Y)
+colnames(data_plot) <- c("tSNE_1", "tSNE_2")
+
+head(data_plot)
+dim(data_plot)  ## should match length of labels_plot (otherwise labels will not match up correctly)
+
+data_plot[, "cluster"] <- as.factor(labels_plot)
+
+head(data_plot)
+
+
+# plot 2-dimensional t-SNE projection
+
+ggplot(data_plot, aes(x = tSNE_1, y = tSNE_2, color = cluster)) + 
+  geom_point(size = 0.2) + 
+  coord_fixed(ratio = 1) + 
+  ggtitle("t-SNE projection with FlowSOM clustering") + 
+  theme_bw()
+
+ggsave("plots/FlowSOM_Rtsne_plot.pdf", height = 6, width = 7)
+
